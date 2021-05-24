@@ -52,8 +52,6 @@ class ExportSMD(bpy.types.Operator, ExportHelper):
                                          to_up=self.axis_up,
                                          ).to_4x4())
 
-        print(global_matrix)
-
         keywords["global_matrix"] = global_matrix
         export_smd.save(context, **keywords)
         return {'FINISHED'}
