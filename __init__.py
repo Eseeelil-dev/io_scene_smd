@@ -12,10 +12,11 @@ bl_info = {
 }
 
 import bpy
-from bpy.props import StringProperty
-from bpy_extras.io_utils import ExportHelper, path_reference_mode
+from bpy.props import StringProperty, FloatProperty
+from bpy_extras.io_utils import ExportHelper, path_reference_mode, orientation_helper, axis_conversion
 
 
+@orientation_helper(axis_forward='-Z', axis_up='Y')
 class ExportSMD(bpy.types.Operator, ExportHelper):
     """Save Static model (.smd) file"""
 
@@ -26,12 +27,35 @@ class ExportSMD(bpy.types.Operator, ExportHelper):
     filename_ext = ".smd"
     filter_glob: StringProperty(default="*.smd", options={'HIDDEN'})
 
+    global_scale: FloatProperty(
+        name="Scale",
+        min=0.01, max=1000.0,
+        default=1.0,
+    )
+
     path_mode: path_reference_mode
 
     def execute(self, context):
+        import importlib
         from . import export_smd
-        export_smd.save(context, fiename='E:\\first.smd', **self.as_keywords(ignore=(
-            "axis_forward", "axis_up", "global_scale", "check_existing", "filter_glob")))
+        importlib.reload(export_smd)
+        from mathutils import Matrix
+
+        keywords = self.as_keywords(ignore=("axis_forward",
+                                            "axis_up",
+                                            "global_scale",
+                                            "check_existing",
+                                            "filter_glob"))
+
+        global_matrix = (Matrix.Scale(self.global_scale, 4) @
+                         axis_conversion(to_forward=self.axis_forward,
+                                         to_up=self.axis_up,
+                                         ).to_4x4())
+
+        print(global_matrix)
+
+        keywords["global_matrix"] = global_matrix
+        export_smd.save(context, **keywords)
         return {'FINISHED'}
 
 
